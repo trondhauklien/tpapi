@@ -1,16 +1,21 @@
+from beanie import init_beanie
 from fastapi import FastAPI
-from mongoengine import connect
+from motor.motor_asyncio import AsyncIOMotorClient
+from pydantic import parse_obj_as
 
-from models import Activity, Course, CourseResponse, Event
+from models import Activity, Course, CourseResponse, Event, Room
 from scraper import scrapeCourseAct
 
 
 app = FastAPI()
 
-connect("tp_scraper", host="mongodb://root:example@mongo:27017")
 
+async def init():
+    # Create Motor client
+    client = AsyncIOMotorClient("mongodb://root:example@mongo:27017")
 
-URL = "https://tp.educloud.no/ntnu/timeplan"
+    # Init beanie with the Product document class
+    await init_beanie(database=client.tpapi, document_models=[Course])
 
 
 @app.get("/")
@@ -19,7 +24,8 @@ def root():
 
 
 @app.get("/fetch")
-def fetch():
+async def fetch():
+    await init()
     courses = []
     data = scrapeCourseAct()
     for c in data.allCourseTermin:
@@ -30,23 +36,24 @@ def fetch():
                 slug=c.id,
             )
         )
-    Course.objects.insert(courses, load_bulk=False)
+    await Course.insert_many(courses)
 
     return {"Success": "Updated courses"}
 
 
 @app.get("/courses")
-def courses():
-    courses = Course.objects.all()
-    response = []
-    for course in courses:
-        response.append(CourseResponse(**course.to_mongo()))
-    return response
+async def courses():
+    await init()
+
+    courses = await Course.find_all().project(CourseResponse).to_list()
+
+    return courses
 
 
 @app.get("/course/{course_id}")
-def course(course_id: str):
-    course = Course.objects(course_id=course_id).first()
+async def course(course_id: str):
+    await init()
+    course = await Course.find_one(Course.course_id == course_id)
     if not course.activities_fetched:
         data = scrapeCourseAct(courses=[course.course_id])
         for activity in data.allActivities:
@@ -57,7 +64,7 @@ def course(course_id: str):
                 )
             )
             course.activities_fetched = True
-            course.save()
+            await course.save()
 
     if not course.timetable_fetched:
         data = scrapeCourseAct(
@@ -76,11 +83,12 @@ def course(course_id: str):
                         "courseid",
                         "aid",
                     }
-                )
+                ),
+                room=parse_obj_as(list[Room] | None, element.room),
             )
             for element in data
         ]
         course.timetable_fetched = True
-        course.save()
+        await course.save()
 
-    return CourseResponse(**course.to_mongo())
+    return parse_obj_as(CourseResponse, course)

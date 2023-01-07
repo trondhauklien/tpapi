@@ -14,7 +14,7 @@ bs4 = "^0.0.1"
 pymongo = "^4.3.3"
 fastapi = "^0.88.0"
 uvicorn = "^0.20.0"
-mongoengine = "^0.25.0"
+beanie = "^1.16.8"
 
 
 [tool.poetry.group.dev.dependencies]

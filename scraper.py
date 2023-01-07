@@ -32,7 +32,6 @@ def scrapeCourseAct(
         params["activityid[]"] = activities
 
     page = requests.get(URL, params=params)
-    print(page.url)
 
     soup = BeautifulSoup(page.content, "html.parser")
 
@@ -51,10 +50,6 @@ def scrapeCourseAct(
 
     output: list[TimetableOutput] = []
     output = parse_obj_as(list[TimetableOutput], data)
-
-    # Save data to json file
-    # with open("data.json", "w") as f:
-    #     json.dump(data, f, indent=2)
 
     return output
 

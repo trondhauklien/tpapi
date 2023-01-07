@@ -1,75 +1,66 @@
 from datetime import datetime
 
-from mongoengine import (
-    BooleanField,
-    DateTimeField,
-    Document,
-    EmbeddedDocument,
-    EmbeddedDocumentField,
-    IntField,
-    ListField,
-    StringField,
-)
+from beanie import Document, Indexed
 from pydantic import BaseModel, Field
 
 
-class Activity(EmbeddedDocument):
-    activityid = StringField()
-    name = StringField()
-    name_en = StringField()
-    name_nn = StringField()
-    coursetype = StringField()
+class Activity(BaseModel):
+    activityid: str
+    name: str
+    name_en: str | None
+    name_nn: str | None
+    coursetype: str
 
 
-class Room(EmbeddedDocument):
-    roomid = StringField()
-    roomurl = StringField()
-    campusid = StringField()
-    roomname = StringField()
-    videolink = StringField()
-    buildingid = StringField()
-    buildingurl = StringField()
-    roomacronym = StringField()
-    buildingname = StringField()
-    showforstudent = BooleanField()
-    buildingacronym = StringField()
-    equipment_function = StringField()
+class Room(BaseModel):
+    roomid: str
+    roomurl: str
+    campusid: str
+    roomname: str
+    videolink: str
+    buildingid: str
+    buildingurl: str
+    roomacronym: str
+    buildingname: str
+    showforstudent: bool
+    buildingacronym: str
+    equipment_function: str | None
 
 
-class Event(EmbeddedDocument):
-    semesterid = StringField()
-    weeknr = IntField()
-    dtstart = DateTimeField()
-    dtend = DateTimeField()
-    lopennr = IntField()
-    teaching_method = StringField()
-    teaching_method_name = StringField()
-    teaching_title = StringField()
-    summary = StringField()
-    studentgroups = ListField(StringField())
-    room = list[Room]
-    terminnr = IntField()
-    status = StringField()
-    active = BooleanField()
-    compulsory = BooleanField()
-    coursetype = StringField()
-    virtual_course_name = StringField()
-    weeknumberid = IntField()
-    resources = list[str]
-    weekday = IntField()
-    multiday = BooleanField()
+class Event(BaseModel):
+    semesterid: str
+    weeknr: int
+    dtstart: datetime
+    dtend: datetime
+    lopennr: int | None
+    teaching_method: str
+    teaching_method_name: str
+    teaching_title: str
+    summary: str
+    studentgroups: list[str] | None
+    room: list[Room] | None
+    terminnr: int
+    status: str
+    active: bool
+    compulsory: bool
+    coursetype: str
+    virtual_course_name: str | None
+    weeknumberid: int
+    resources: list[str] | None
+    weekday: int
+    multiday: bool
 
 
 class Course(Document):
-    course_id = StringField()
-    slug = StringField()
-    name = StringField()
-    name_en = StringField()
-    name_nn = StringField()
-    activities_fetched = BooleanField(default=False)
-    activities = ListField(EmbeddedDocumentField(Activity))
-    timetable_fetched = BooleanField(default=False)
-    events = ListField(EmbeddedDocumentField(Event))
+    course_id: str = Field(indexed=True)
+    slug: str
+    name: str
+    name_en: str | None
+    name_nn: str | None
+    activities_fetched: bool = False
+    activities: list[Activity | None] = []
+    timetable_fetched: bool = False
+    events: list[Event | None] = []
 
 
 class ActivityResponse(BaseModel):
@@ -87,18 +78,18 @@ class RoomResponse(BaseModel):
 
 class EventResponse(BaseModel):
     teaching_method_name: str
-    dtstart: str
-    dtend: str
-    studentgroups: list[str]
-    # room: list[RoomResponse]
+    dtstart: datetime
+    dtend: datetime
+    studentgroups: list[str] | None
+    room: list[RoomResponse] | None
 
 
 class CourseResponse(BaseModel):
     course_id: str
     slug: str
     name: str
-    activities: list[ActivityResponse]
-    # events: list[EventResponse]
+    activities: list[ActivityResponse] | None
+    events: list[EventResponse] | None
 
 
 class TPCourse(BaseModel):
